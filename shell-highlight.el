@@ -24,8 +24,7 @@
 
 ;;; Commentary:
 
-;; Syntax highlighting in M-x shell buffers. Syntax highlighting is derived
-;; from `sh-script-mode'.
+;; Syntax highlighting in M-x shell buffers, derived from `sh-script-mode'.
 ;;
 ;; Installation:
 ;;
@@ -44,11 +43,11 @@
 
 (defun shell-highlight-fontify-region-advice (fun beg end &optional verbose)
   "Around advice for `font-lock-fontify-region-function'.
-Also suitable for `syntax-propertize-function'. Take an
+Also suitable for `syntax-propertize-function'.  Take an
 intersection of text, input by user at prompt (its 'filed
 property isn't 'output), and the region specified by BEG and END.
-Call FUN on each continuous region of this intersection. Restrict
-to this region beforehand. VERBOSE is passed to FUN."
+Call FUN on each continuous region of this intersection.
+Restrict to this region beforehand.  VERBOSE is passed to FUN."
   (when (> (car (func-arity fun)) 2)
     (setq verbose (list verbose)))
   (let ((beg1 beg) (end1 nil)
@@ -102,7 +101,7 @@ Also disable highlighting the whole input text after RET."
 (defun shell-highlight-comint-send-input-adv (fun &rest args)
   "Advice for `comint-send-input'.
 Calls FUN with ARGS, preventing it from highlighting prompt if
-`comint-highlight-input' is nil. This is not needed for emacs
+`comint-highlight-input' is nil.  This is not needed for emacs
 versions 28 or higher."
   (if comint-highlight-input
       (apply fun args)
