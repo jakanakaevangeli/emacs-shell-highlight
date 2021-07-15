@@ -72,8 +72,10 @@ Restrict to this region beforehand.  VERBOSE is passed to FUN."
       (`((jit-lock-bounds ,beg . ,_) . (jit-lock-bounds ,_ . ,end))
        `(jit-lock-bounds ,beg . ,end)))))
 
+;;;###autoload
 (add-hook 'shell-mode-hook #'shell-highlight-setup-shell-mode)
 
+;;;###autoload
 (defun shell-highlight-setup-shell-mode ()
   "Set up font lock to highlight input text.
 Also disable highlighting the whole input text after RET."
