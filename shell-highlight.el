@@ -4,10 +4,13 @@
 
 (defun shell-highlight-fontify-region-advice (fun beg end &optional verbose)
   "Around advice for `font-lock-fontify-region-function'.
-Take an intersection of text, input by user at prompt (its 'filed
+Also suitable for `syntax-propertize-function'. Take an
+intersection of text, input by user at prompt (its 'filed
 property isn't 'output), and the region specified by BEG and END.
 Call FUN on each continuous region of this intersection. Restrict
 to this region beforehand. VERBOSE is passed to FUN."
+  (when (> (car (func-arity fun)) 2)
+    (setq verbose (list verbose)))
   (let ((beg1 beg) (end1 nil)
         (return-beg t) (return-end t))
     (while (setq beg1 (text-property-not-all beg1 end 'field 'output))
@@ -21,13 +24,14 @@ to this region beforehand. VERBOSE is passed to FUN."
             (setq end2 (field-end end2)))
           ;; Narrow to the whole input field surrounding the region
           (narrow-to-region beg2 end2))
-        (setq return-end (funcall fun beg1 end1 verbose)))
+        (setq return-end (apply fun beg1 end1 verbose)))
       (when (eq return-beg t)
         (setq return-beg return-end))
       (setq beg1 end1))
     ;; Combine the bounds, returned by the first and the last function
-    (and (consp return-beg) (consp return-end)
-         `(jit-lock-bounds ,(cadr return-beg) . ,(cddr return-end)))))
+    (pcase (cons return-beg return-end)
+      (`((jit-lock-bounds ,beg . ,_) . (jit-lock-bounds ,_ . ,end))
+       `(jit-lock-bounds ,beg . ,end)))))
 
 (add-hook 'shell-mode-hook #'shell-highlight-setup-shell-mode)
 
@@ -44,8 +48,13 @@ Also disable highlighting the whole input text after RET."
            . ,#'sh-font-lock-syntactic-face-function)
           (font-lock-fontify-region-function
            . ,(apply-partially #'shell-highlight-fontify-region-advice
-                                 font-lock-fontify-region-function))
+                               font-lock-fontify-region-function))
           (font-lock-dont-widen . t)))
+  (setq-local syntax-propertize-function
+              (apply-partially #'shell-highlight-fontify-region-advice
+                               #'sh-syntax-propertize-function))
+  (add-hook 'syntax-propertize-extend-region-functions
+            #'syntax-propertize-multiline 'append 'local)
   (setq-local comint-highlight-input nil))
 
 ;; Disable comint highlighting input after RET
