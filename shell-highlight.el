@@ -1,4 +1,40 @@
-;; -*- lexical-binding: t; -*-
+;;; shell-highlight.el --- Syntax highlighting in M-x shell buffers -*- lexical-binding: t; -*-
+
+;; Filename: shell-highlight.el
+;; Description: Syntax highlighting in M-x shell buffers
+;; Author: jakanakaevangeli <jakanakaevangeli@chiru.no>
+;; Created: 2021-07-16
+;; Version: 1.0
+;; URL: https://github.com/jakanakaevangeli/emacs-shell-highlight
+
+;; This file is not part of GNU Emacs.
+
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; Syntax highlighting in M-x shell buffers. Syntax highlighting is derived
+;; from `sh-script-mode'.
+;;
+;; Installation:
+;;
+;; Add the following to your Emacs init file:
+;;
+;;  (add-to-list 'load-path "/path/to/emacs-shell-highlight")
+;;  (require 'shell-highlight)
+
+;;; Code:
 
 (require 'sh-script)
 (eval-when-compile
