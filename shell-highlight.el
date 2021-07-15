@@ -16,9 +16,9 @@ to this region beforehand. VERBOSE is passed to FUN."
         (let ((beg2 beg1)
               (end2 end1))
           (when (= beg2 beg)
-            (setq beg2 (constrain-to-field (point-min) beg2)))
+            (setq beg2 (field-beginning beg2)))
           (when (= end2 end)
-            (setq end2 (constrain-to-field (point-max) end2)))
+            (setq end2 (field-end end2)))
           ;; Narrow to the whole input field surrounding the region
           (narrow-to-region beg2 end2))
         (funcall fun beg1 end1 verbose))
