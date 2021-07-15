@@ -103,7 +103,7 @@ Also disable highlighting the whole input text after RET."
 (defun shell-highlight-comint-send-input-adv (fun &rest args)
   "Advice for `comint-send-input'.
 Calls FUN with ARGS, preventing it from highlighting prompt if
-`comint-highlight-input' is nil.  This is not needed for emacs
+`comint-highlight-input' is nil.  This is not needed for Emacs
 versions 28 or higher."
   (if comint-highlight-input
       (apply fun args)
@@ -117,8 +117,11 @@ versions 28 or higher."
       (apply fun args))))
 
 (with-eval-after-load 'comint
-  ;; Only install advice for emacs versions < 28
+  ;; Only install advice for Emacs versions < 28
   (unless (boundp 'comint-highlight-input)
     (defvar comint-highlight-input t)
     (advice-add #'comint-send-input :around
                 #'shell-highlight-comint-send-input-adv)))
+
+(provide 'shell-highlight)
+;;; shell-highlight.el ends here

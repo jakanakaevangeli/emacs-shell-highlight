@@ -40,8 +40,6 @@
 
 (require 'sh-script)
 
-(defvar-local shell-highlight-undef-keywords nil)
-
 (defface shell-highlight-undef-defined-face
   '((t :inherit 'font-lock-function-name-face))
   "Face used for existent commands."
@@ -106,3 +104,6 @@ The remote host is chosen as indicated by `default-directory'."
    (shell-highlight-undef-keywords
     (font-lock-remove-keywords nil shell-highlight-undef-keywords)
     (font-lock-flush))))
+
+(provide 'shell-highlight-undef)
+;;; shell-highlight-undef.el ends here
