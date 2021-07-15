@@ -38,6 +38,8 @@
 
 ;;; Code:
 
+(require 'sh-script)
+
 (defvar-local shell-highlight-undef-keywords nil)
 
 (defface shell-highlight-undef-defined-face
@@ -84,6 +86,7 @@ The remote host is chosen as indicated by `default-directory'."
                (t 'shell-highlight-undef-undefined-face)))))
     t))
 
+;;;###autoload
 (define-minor-mode shell-highlight-undef-mode
   "Highlight undefined shell commands and aliases."
   :init-value nil
