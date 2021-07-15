@@ -8,8 +8,8 @@ Take an intersection of text, input by user at prompt (its 'filed
 property isn't 'output), and the region specified by BEG and END.
 Call FUN on each continuous region of this intersection. Restrict
 to this region beforehand. VERBOSE is passed to FUN."
-  (let ((beg1 beg)
-        (end1 nil))
+  (let ((beg1 beg) (end1 nil)
+        (return-beg t) (return-end t))
     (while (setq beg1 (text-property-not-all beg1 end 'field 'output))
       (setq end1 (or (text-property-any beg1 end 'field 'output) end))
       (save-restriction
@@ -21,8 +21,13 @@ to this region beforehand. VERBOSE is passed to FUN."
             (setq end2 (field-end end2)))
           ;; Narrow to the whole input field surrounding the region
           (narrow-to-region beg2 end2))
-        (funcall fun beg1 end1 verbose))
-      (setq beg1 end1))))
+        (setq return-end (funcall fun beg1 end1 verbose)))
+      (when (eq return-beg t)
+        (setq return-beg return-end))
+      (setq beg1 end1))
+    ;; Combine the bounds, returned by the first and the last function
+    (and (consp return-beg) (consp return-end)
+         `(jit-lock-bounds ,(cadr return-beg) . ,(cddr return-end)))))
 
 (add-hook 'shell-mode-hook #'shell-highlight-setup-shell-mode)
 
