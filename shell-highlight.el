@@ -1,5 +1,9 @@
 ;; -*- lexical-binding: t; -*-
 
+(require 'sh-script)
+(eval-when-compile
+  (require 'cl-lib))
+
 (defvar comint-highlight-input)
 
 (defun shell-highlight-fontify-region-advice (fun beg end &optional verbose)
