@@ -24,8 +24,8 @@
 
 ;;; Commentary:
 
-;; Highlight non-existent shell commands.  This mode is meant to be used in M-x
-;; shell buffers.  If you use shell aliases, add them to
+;; Highlight non-existent shell commands.  This mode is meant to be used in
+;; M-x shell buffers.  If you use shell aliases or functions, add them to
 ;; `shell-highlight-undef-aliases'.
 ;;
 ;; Installation:
@@ -66,7 +66,7 @@ The remote host is chosen as indicated by `default-directory'."
 
 (defvar shell-highlight-undef--face 'font-lock-function-name-face)
 (defvar shell-highlight-undef-keywords
-  `((,#'shell-highlight-undef-matcher  6 shell-highlight-undef--face)))
+  `((,#'shell-highlight-undef-matcher 6 shell-highlight-undef--face)))
 (defvar-local shell-highlight-undef-regexp
   (or (bound-and-true-p regexp-unmatchable) "\\`a\\`"))
 
