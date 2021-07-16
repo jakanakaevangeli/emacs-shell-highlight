@@ -79,6 +79,12 @@ The remote host is chosen as indicated by `default-directory'."
               (cond
                ((member cmd shell-highlight-undef-aliases)
                 'shell-highlight-undef-alias-face)
+               ;; Check if it contain a directory separator
+               ((file-name-directory cmd)
+                (if (or (file-executable-p cmd)
+                        (file-directory-p cmd))
+                    'shell-highlight-undef-defined-face
+                  'shell-highlight-undef-undefined-face))
                ((executable-find cmd shell-highlight-undef-search-remote)
                 'shell-highlight-undef-defined-face)
                (t 'shell-highlight-undef-undefined-face)))))
