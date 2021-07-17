@@ -146,12 +146,10 @@ VERBOSE is passed to the fontify-region functions."
        `(jit-lock-bounds ,(min beg1 beg ret-beg) .
                          ,(max end1 end ret-end))))))
 
-(defun shell-highlight-syntax-propertize (fun beg end)
-  "Around advice for `syntax-propertize-function'.
-First, propertize the region specified by BEG and END using FUN.
-Then propertize only the input text in the region using
-`sh-script-mode' propertize function."
-  (funcall fun beg end)
+(defun shell-highlight-syntax-propertize (beg end)
+  "After advice for `syntax-propertize-function'.
+Then propertize input input text in the region specified by BEG
+and END using `sh-script-mode' propertize function."
   (if-let* ((fun shell-highlight-fl-syntax-propertize-function))
       (shell-highlight--intersect-regions
        nil
@@ -225,7 +223,7 @@ Also, disable highlighting the whole input text after RET."
         ;; Set up our fontify and propertize functions
         (unless syntax-propertize-function
           (setq-local syntax-propertize-function #'ignore))
-        (add-function :around (local 'syntax-propertize-function)
+        (add-function :after (local 'syntax-propertize-function)
                       #'shell-highlight-syntax-propertize)
         (add-function :around (local 'font-lock-fontify-region-function)
                       #'shell-highlight-fontify-region)
