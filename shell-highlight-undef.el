@@ -25,8 +25,8 @@
 ;;; Commentary:
 
 ;; Highlight non-existent shell commands.  This mode is meant to be used in
-;; M-x shell buffers.  If you use shell aliases or functions, add them to
-;; `shell-highlight-undef-aliases'.
+;; M-x shell buffers.  If you use shell aliases, functions or builtins, unknown
+;; to sh-script, add them to `shell-highlight-undef-aliases'.
 ;;
 ;; Installation:
 ;;
