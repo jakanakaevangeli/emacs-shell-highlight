@@ -218,11 +218,9 @@ Also, disable highlighting the whole input text after RET."
           (setq shell-highlight-fl-syntax-table
                 font-lock-syntax-table)
           (setq shell-highlight-fl-syntactic-face-function
-                font-lock-syntactic-face-function))
-
-        (setq shell-highlight-fl-orig-dont-widen
-              font-lock-dont-widen)
-        (setq font-lock-dont-widen t)
+                font-lock-syntactic-face-function)
+          (setq-local shell-highlight-fl-syntax-propertize-function
+                      #'sh-syntax-propertize-function))
 
         ;; Set up our fontify and propertize functions
         (unless syntax-propertize-function
@@ -232,28 +230,29 @@ Also, disable highlighting the whole input text after RET."
         (add-function :around (local 'font-lock-fontify-region-function)
                       #'shell-highlight-fontify-region)
 
-        ;; Syntax propertization
-        (setq-local shell-highlight-fl-syntax-propertize-function
-                    ;; Taken from `sh-mode'
-                    #'sh-syntax-propertize-function)
+        ;; Misc
+        (setq shell-highlight-fl-orig-dont-widen
+              font-lock-dont-widen)
+        (setq font-lock-dont-widen t)
+        (setq-local comint-highlight-input nil)
+
         (unless (memq #'syntax-propertize-multiline
                       syntax-propertize-extend-region-functions)
           (setq shell-highlight--remove-extend-functions t)
           (add-hook 'syntax-propertize-extend-region-functions
-                    #'syntax-propertize-multiline 'append 'local))
+                    #'syntax-propertize-multiline 'append 'local)))
 
-        (setq-local comint-highlight-input nil))
-
-    (setq font-lock-dont-widen
-          shell-highlight-fl-orig-dont-widen)
     (remove-function (local 'font-lock-fontify-region-function)
                      #'shell-highlight-fontify-region)
     (remove-function (local 'syntax-propertize-function)
                      #'shell-highlight-syntax-propertize)
+
+    (setq font-lock-dont-widen
+          shell-highlight-fl-orig-dont-widen)
+    (kill-local-variable 'comint-highlight-input)
     (when shell-highlight--remove-extend-functions
       (remove-hook 'syntax-propertize-extend-region-functions
-                   #'syntax-propertize-multiline 'local))
-    (kill-local-variable 'comint-highlight-input))
+                   #'syntax-propertize-multiline 'local)))
 
   (font-lock-flush))
 
