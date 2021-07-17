@@ -73,10 +73,10 @@ The remote host is chosen as indicated by `default-directory'."
 (defun shell-highlight-undef-matcher (end)
   "Matcher used to highlight commands up to END."
   (when (re-search-forward shell-highlight-undef-regexp end t)
-    (let ((cmd (match-string 6))
-          (beg (match-beginning 6)))
-      (setq shell-highlight-undef--face
-            (save-match-data
+    (save-match-data
+      (let ((cmd (match-string 6))
+            (beg (match-beginning 6)))
+        (setq shell-highlight-undef--face
               (cond
                ;; Don't highlight command output.  Only useful if
                ;; `shell-highlight-mode' is disabled.
