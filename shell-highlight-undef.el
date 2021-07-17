@@ -104,14 +104,23 @@ If 'shell-highlight, they were added to
   (if shell-highlight-undef-mode
       (progn
         (setq shell-highlight-undef-regexp
-              ;; Taken from `sh-font-lock-keywords-1'
-              (concat "\\([;(){}`|&]\\|^\\)[ \t]*\\(\\("
-                      (regexp-opt (sh-feature sh-leading-keywords) t)
-                      "[ \t]+\\)?"
-                      (regexp-opt (append (sh-feature sh-leading-keywords)
-                                          (sh-feature sh-other-keywords))
-                                  t)
-                      "[ \t]+\\)?\\_<\\(\\(?:\\s_\\|\\sw\\|/\\)+\\)\\_>"))
+              ;; Adapted from `sh-font-lock-keywords-1'
+              (concat
+               "\\("
+               "[;(){}`|&]"
+               (if (bound-and-true-p shell-highlight-mode)
+                   ;; `shell-highlight' already puts point-min on end of prompt
+                   ""
+                 (concat "\\|" comint-prompt-regexp))
+               "\\|^"
+               "\\)"
+               "[ \t]*\\(\\("
+               (regexp-opt (sh-feature sh-leading-keywords) t)
+               "[ \t]+\\)?"
+               (regexp-opt (append (sh-feature sh-leading-keywords)
+                                   (sh-feature sh-other-keywords))
+                           t)
+               "[ \t]+\\)?\\_<\\(\\(?:\\s_\\|\\sw\\|/\\)+\\)\\_>"))
         (if (bound-and-true-p shell-highlight-mode)
             (let ((font-lock-keywords shell-highlight-fl-keywords))
               (font-lock-add-keywords nil shell-highlight-undef-keywords t)
