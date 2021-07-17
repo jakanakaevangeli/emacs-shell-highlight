@@ -82,8 +82,9 @@ or input (all remaining text).  Interchangeably call FUN-OUTPUT
 on each output region, and FUN-INPUT on each input region.
 Restrict to this region beforehand.
 
-FUN-OUTPUT and FUN-INPUT are passed two argumets, the beginning
-and end of their respective extracted regions.
+FUN-OUTPUT and FUN-INPUT are passed two arguments, the beginning
+and end of their respective extracted regions.  You can also pass
+nil as either function to skip its respective regions.
 
 Return a cons cell of return values of the first and last
 function called, or nil, if no function was called (if BEG = END)."
@@ -96,61 +97,70 @@ function called, or nil, if no function was called (if BEG = END)."
                                 (text-property-not-all beg1 end 'field 'output)
                               (text-property-any beg1 end 'field 'output))
                             end)))
-      (save-restriction
-        (let ((beg2 beg1)
-              (end2 end1))
-          (when (= beg2 beg)
-            (setq beg2 (field-beginning beg2)))
-          (when (= end2 end)
-            (setq end2 (field-end end2)))
-          ;; Narrow to the whole field surrounding the region
-          (narrow-to-region beg2 end2))
-        (setq return-end (list (funcall (if is-output fun-output fun-input)
-                                        beg1 end1))))
-      (unless return-beg
-        (setq return-beg return-end))
+      (when-let* ((fun (if is-output fun-output fun-input)))
+        (save-restriction
+          (let ((beg2 beg1)
+                (end2 end1))
+            (when (= beg2 beg)
+              (setq beg2 (field-beginning beg2)))
+            (when (= end2 end)
+              (setq end2 (field-end end2)))
+            ;; Narrow to the whole field surrounding the region
+            (narrow-to-region beg2 end2))
+          (setq return-end (list (funcall fun beg1 end1))))
+        (unless return-beg
+          (setq return-beg return-end)))
       (setq beg1 end1)
       (setq is-output (not is-output)))
     (when return-beg
       (cons (car return-beg) (car return-end)))))
 
 (defun shell-highlight-fontify-region (beg end verbose)
-  "Fontify region for shell-highlight.
-Between BEG and END, input text is highlighted using
-`sh-script-mode' highlighting and output text is highlighted
-using the default highlighting."
-  (pcase
-      (shell-highlight--intersect-regions
-       (lambda (beg end)
-         (funcall shell-highlight-fl-orig-fontify-region-function
-                  beg end verbose))
-       (lambda (beg end)
-         (let ((font-lock-keywords
-                shell-highlight-fl-keywords)
-               (font-lock-keywords-only
-                shell-highlight-fl-keywords-only)
-               (font-lock-keywords-case-fold-search
-                shell-highlight-fl-keywords-case-fold-search)
-               (font-lock-syntax-table
-                shell-highlight-fl-syntax-table)
-               (font-lock-syntactic-face-function
-                shell-highlight-fl-syntactic-face-function))
-           (prog1 (funcall shell-highlight-fl-orig-fontify-region-function
-                           beg end verbose)
-             ;; The default fontify function may change the keywords variable
-             (setq shell-highlight-fl-keywords
-                   font-lock-keywords))))
-       beg end)
-    (`((jit-lock-bounds ,beg . ,_) . (jit-lock-bounds ,_ . ,end))
-     `(jit-lock-bounds ,beg . ,end))))
+  "Fontify region between BEG and END for shell-highlight.
+First, highlight it using the default font-lock highlighting.
+Then highlight only the input text in the region using
+`sh-script-mode' highlighting."
+  (let ((ret-beg nil)
+        (ret-end nil))
+    (pcase
+        (funcall shell-highlight-fl-orig-fontify-region-function
+                 beg end verbose)
+      (`(jit-lock-bounds ,beg1 . ,end1)
+       (setq ret-beg beg1 ret-end end1)))
+    (pcase
+        (shell-highlight--intersect-regions
+         nil
+         (lambda (beg end)
+           (let ((font-lock-keywords
+                  shell-highlight-fl-keywords)
+                 (font-lock-keywords-only
+                  shell-highlight-fl-keywords-only)
+                 (font-lock-keywords-case-fold-search
+                  shell-highlight-fl-keywords-case-fold-search)
+                 (font-lock-syntax-table
+                  shell-highlight-fl-syntax-table)
+                 (font-lock-syntactic-face-function
+                  shell-highlight-fl-syntactic-face-function))
+             (prog1 (funcall shell-highlight-fl-orig-fontify-region-function
+                             beg end verbose)
+               ;; The default fontify function may change the keywords variable
+               (setq shell-highlight-fl-keywords
+                     font-lock-keywords))))
+         beg end)
+      ((and (guard ret-beg)
+            `((jit-lock-bounds ,beg1 . ,_) . (jit-lock-bounds ,_ . ,end1)))
+       `(jit-lock-bounds ,(min beg1 beg ret-beg) .
+                         ,(max end1 end ret-end))))))
 
 (defun shell-highlight-syntax-propertize (beg end)
   "Propertize region for shell-highlight.
-Between BEG and END, input text is propertized using
-`sh-script-mode' propertize function and output text is
-highlighted using the default highlighting."
+First, propertize it using the default propertize function.  Then
+propertize only the input text in the region using
+`sh-script-mode' propertize function."
+  (when-let* ((fun shell-highlight-fl-orig-syntax-propertize-function))
+    (funcall fun beg end))
   (shell-highlight--intersect-regions
-   (or shell-highlight-fl-orig-syntax-propertize-function #'ignore)
+   nil
    (if-let* ((fun shell-highlight-fl-syntax-propertize-function))
        (lambda (beg end)
          (let ((font-lock-keywords
