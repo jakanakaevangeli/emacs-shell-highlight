@@ -62,15 +62,11 @@ Used as `font-lock-syntax-table', to highlight input regions.")
 Used as `font-lock-syntactic-face-function', to highlight input
 regions.")
 
-(defvar-local shell-highlight-fl-orig-fontify-region-function nil
-  "Original value of `font-lock-fontify-region-function'.")
-(defvar-local shell-highlight-fl-orig-syntax-propertize-function nil
-  "Original value of `font-lock-syntax-propertize-function'.")
-(defvar-local shell-highlight-fl-orig-dont-widen nil
-  "Original value of `font-lock-dont-widen'.")
-
 (defvar-local shell-highlight-fl-syntax-propertize-function nil
   "Used by `shell-highlight' to propertize input regions.")
+
+(defvar-local shell-highlight-fl-orig-dont-widen nil
+  "Original value of `font-lock-dont-widen'.")
 
 (defvar-local shell-highlight--remove-extend-functions nil)
 
@@ -115,16 +111,15 @@ function called, or nil, if no function was called (if BEG = END)."
     (when return-beg
       (cons (car return-beg) (car return-end)))))
 
-(defun shell-highlight-fontify-region (beg end verbose)
-  "Fontify region between BEG and END for shell-highlight.
-First, highlight it using the default font-lock highlighting.
-Then highlight only the input text in the region using
-`sh-script-mode' highlighting."
+(defun shell-highlight-fontify-region (fun beg end verbose)
+  "Around advice for `font-lock-fontify-region-function'.
+Fontify region between BEG and END for shell-highlight.  First,
+highlight it using FUN.  Then highlight only the input text in
+the region using `sh-script-mode' highlighting keywords.
+VERBOSE is passed to the fontify-region functions."
   (let ((ret-beg nil)
         (ret-end nil))
-    (pcase
-        (funcall shell-highlight-fl-orig-fontify-region-function
-                 beg end verbose)
+    (pcase (funcall fun beg end verbose)
       (`(jit-lock-bounds ,beg1 . ,end1)
        (setq ret-beg beg1 ret-end end1)))
     (pcase
@@ -141,9 +136,8 @@ Then highlight only the input text in the region using
                   shell-highlight-fl-syntax-table)
                  (font-lock-syntactic-face-function
                   shell-highlight-fl-syntactic-face-function))
-             (prog1 (funcall shell-highlight-fl-orig-fontify-region-function
-                             beg end verbose)
-               ;; The default fontify function may change the keywords variable
+             (prog1 (funcall fun beg end verbose)
+               ;; The default fontify function may modify the keywords variable
                (setq shell-highlight-fl-keywords
                      font-lock-keywords))))
          beg end)
@@ -152,16 +146,15 @@ Then highlight only the input text in the region using
        `(jit-lock-bounds ,(min beg1 beg ret-beg) .
                          ,(max end1 end ret-end))))))
 
-(defun shell-highlight-syntax-propertize (beg end)
-  "Propertize region for shell-highlight.
-First, propertize it using the default propertize function.  Then
-propertize only the input text in the region using
+(defun shell-highlight-syntax-propertize (fun beg end)
+  "Around advice for `syntax-propertize-function'.
+First, propertize the region specified by BEG and END using FUN.
+Then propertize only the input text in the region using
 `sh-script-mode' propertize function."
-  (when-let* ((fun shell-highlight-fl-orig-syntax-propertize-function))
-    (funcall fun beg end))
-  (shell-highlight--intersect-regions
-   nil
-   (if-let* ((fun shell-highlight-fl-syntax-propertize-function))
+  (funcall fun beg end)
+  (if-let* ((fun shell-highlight-fl-syntax-propertize-function))
+      (shell-highlight--intersect-regions
+       nil
        (lambda (beg end)
          (let ((font-lock-keywords
                 shell-highlight-fl-keywords)
@@ -174,8 +167,7 @@ propertize only the input text in the region using
                (font-lock-syntactic-face-function
                 shell-highlight-fl-syntactic-face-function))
            (funcall fun beg end)))
-     #'ignore)
-   beg end))
+       beg end)))
 
 ;;;###autoload
 (define-minor-mode shell-highlight-mode
@@ -228,20 +220,17 @@ Also, disable highlighting the whole input text after RET."
           (setq shell-highlight-fl-syntactic-face-function
                 font-lock-syntactic-face-function))
 
-        ;; Save original values
-        (setq shell-highlight-fl-orig-fontify-region-function
-              font-lock-fontify-region-function)
-        (setq shell-highlight-fl-orig-syntax-propertize-function
-              syntax-propertize-function)
         (setq shell-highlight-fl-orig-dont-widen
               font-lock-dont-widen)
+        (setq font-lock-dont-widen t)
 
         ;; Set up our fontify and propertize functions
-        (setq font-lock-fontify-region-function
-              #'shell-highlight-fontify-region)
-        (setq syntax-propertize-function
-              #'shell-highlight-syntax-propertize)
-        (setq font-lock-dont-widen t)
+        (unless syntax-propertize-function
+          (setq-local syntax-propertize-function #'ignore))
+        (add-function :around (local 'syntax-propertize-function)
+                      #'shell-highlight-syntax-propertize)
+        (add-function :around (local 'font-lock-fontify-region-function)
+                      #'shell-highlight-fontify-region)
 
         ;; Syntax propertization
         (setq-local shell-highlight-fl-syntax-propertize-function
@@ -255,12 +244,12 @@ Also, disable highlighting the whole input text after RET."
 
         (setq-local comint-highlight-input nil))
 
-    (setq font-lock-fontify-region-function
-          shell-highlight-fl-orig-fontify-region-function)
-    (setq syntax-propertize-function
-          shell-highlight-fl-orig-syntax-propertize-function)
     (setq font-lock-dont-widen
           shell-highlight-fl-orig-dont-widen)
+    (remove-function (local 'font-lock-fontify-region-function)
+                     #'shell-highlight-fontify-region)
+    (remove-function (local 'syntax-propertize-function)
+                     #'shell-highlight-syntax-propertize)
     (when shell-highlight--remove-extend-functions
       (remove-hook 'syntax-propertize-extend-region-functions
                    #'syntax-propertize-multiline 'local))
