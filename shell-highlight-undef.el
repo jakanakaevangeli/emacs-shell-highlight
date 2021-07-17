@@ -90,26 +90,54 @@ The remote host is chosen as indicated by `default-directory'."
                (t 'shell-highlight-undef-undefined-face)))))
     t))
 
+(defvar shell-highlight-fl-keywords)
+(defvar-local shell-highlight-undef--added-to nil
+  "Which variable were the undef keywords added to.
+If 'shell-highlight, they were added to
+`shell-highlight-fl-keywords'.  If 'font-lock, they were added to
+`font-lock-keywords'.")
+
 ;;;###autoload
 (define-minor-mode shell-highlight-undef-mode
   "Highlight undefined shell commands and aliases."
   :init-value nil
-  (cond
-   (shell-highlight-undef-mode
-    (setq shell-highlight-undef-regexp
-          ;; Taken from `sh-font-lock-keywords-1'
-          (concat "\\([;(){}`|&]\\|^\\)[ \t]*\\(\\("
-                  (regexp-opt (sh-feature sh-leading-keywords) t)
-                  "[ \t]+\\)?"
-                  (regexp-opt (append (sh-feature sh-leading-keywords)
-                                      (sh-feature sh-other-keywords))
-                              t)
-                  "[ \t]+\\)?\\<\\(.+?\\)\\>"))
-    (font-lock-add-keywords nil shell-highlight-undef-keywords t)
-    (font-lock-flush))
-   (shell-highlight-undef-keywords
-    (font-lock-remove-keywords nil shell-highlight-undef-keywords)
-    (font-lock-flush))))
+  (if shell-highlight-undef-mode
+      (progn
+        (setq shell-highlight-undef-regexp
+              ;; Taken from `sh-font-lock-keywords-1'
+              (concat "\\([;(){}`|&]\\|^\\)[ \t]*\\(\\("
+                      (regexp-opt (sh-feature sh-leading-keywords) t)
+                      "[ \t]+\\)?"
+                      (regexp-opt (append (sh-feature sh-leading-keywords)
+                                          (sh-feature sh-other-keywords))
+                                  t)
+                      "[ \t]+\\)?\\_<\\(\\(?:\\s_\\|\\sw\\|/\\)+\\)\\_>"))
+        (if (bound-and-true-p shell-highlight-mode)
+            (let ((font-lock-keywords shell-highlight-fl-keywords))
+              (font-lock-add-keywords nil shell-highlight-undef-keywords t)
+              (setq shell-highlight-fl-keywords font-lock-keywords)
+              (setq shell-highlight-undef--added-to 'shell-highlight))
+          (font-lock-add-keywords nil shell-highlight-undef-keywords t)
+          (setq shell-highlight-undef--added-to 'font-lock)))
+
+    (pcase (prog1 shell-highlight-undef--added-to
+             (setq shell-highlight-undef--added-to nil))
+      ('shell-highlight
+       (let ((font-lock-keywords shell-highlight-fl-keywords))
+         (font-lock-remove-keywords nil shell-highlight-undef-keywords)
+         (setq shell-highlight-fl-keywords font-lock-keywords)))
+      ('font-lock
+       (font-lock-remove-keywords nil shell-highlight-undef-keywords))))
+
+  (font-lock-flush))
+
+(add-hook 'shell-highlight-mode-hook #'shell-highlight-undef-reset-mode)
+
+(defun shell-highlight-undef-reset-mode ()
+  "If `shell-highlight-undef-mode' is on, turn it off and on."
+  (when shell-highlight-undef-mode
+    (shell-highlight-undef-mode -1)
+    (shell-highlight-undef-mode 1)))
 
 (provide 'shell-highlight-undef)
 ;;; shell-highlight-undef.el ends here
