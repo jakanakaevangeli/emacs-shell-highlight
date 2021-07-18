@@ -26,14 +26,15 @@
 
 ;; Highlight non-existent shell commands.  This mode is meant to be used in
 ;; M-x shell buffers.  If you use shell aliases, functions or builtins, unknown
-;; to sh-script, add them to `shell-highlight-undef-aliases'.
+;; to sh-script, add them to `shell-highlight-undef-aliases'.  You can also try
+;; enabling this mode in ordinary sh-script-mode buffers.
 ;;
 ;; Installation:
 ;;
 ;; Add the following to your Emacs init file:
 ;;
 ;;  (add-to-list 'load-path "/path/to/emacs-shell-highlight")
-;;  (require 'shell-highlight-undef)
+;;  (autoload 'shell-highlight-undef-mode "shell-highlight")
 ;;  (add-hook 'shell-mode-hook #'shell-highlight-undef-mode 5)
 
 ;;; Code:

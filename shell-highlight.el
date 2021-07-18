@@ -31,7 +31,7 @@
 ;; Add the following to your Emacs init file:
 ;;
 ;;  (add-to-list 'load-path "/path/to/emacs-shell-highlight")
-;;  (require 'shell-highlight)
+;;  (autoload 'shell-highlight-mode "shell-highlight")
 ;;  (add-hook 'shell-mode-hook #'shell-highlight-mode)
 
 ;;; Code:
@@ -147,8 +147,8 @@ VERBOSE is passed to the fontify-region functions."
 
 (defun shell-highlight-syntax-propertize (beg end)
   "After advice for `syntax-propertize-function'.
-Then propertize input input text in the region specified by BEG
-and END using `sh-script-mode' propertize function."
+propertize input input text in the region specified by BEG and
+END using `sh-script-mode' propertize function."
   (when-let* ((fun shell-highlight-fl-syntax-propertize-function))
     (let ((font-lock-keywords
            shell-highlight-fl-keywords)
