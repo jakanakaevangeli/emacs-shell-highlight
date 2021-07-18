@@ -167,85 +167,86 @@ END using `sh-script-mode' propertize function."
   "Highlight input text in shell-mode.
 Also, disable highlighting the whole input text after RET."
   :group 'shell
-  (if shell-highlight-mode
-      (progn
-        (font-lock-set-defaults)
-        ;; Trick to turn on jit-lock with `jit-lock-contextually' set to t
-        (font-lock-mode -1)
-        (let ((font-lock-keywords-only nil))
-          (font-lock-mode 1))
+  (remove-function (local 'font-lock-fontify-region-function)
+                   #'shell-highlight-fontify-region)
+  (remove-function (local 'syntax-propertize-function)
+                   #'shell-highlight-syntax-propertize)
 
-        (make-local-variable 'font-lock-keywords-case-fold-search)
-        (make-local-variable 'font-lock-syntax-table)
-        (make-local-variable 'font-lock-syntactic-face-function)
-        (make-local-variable 'font-lock-fontify-region-function)
-        (make-local-variable 'syntax-propertize-function)
-        (make-local-variable 'font-lock-keywords)
-        (let ((font-lock-set-defaults nil)
-              (font-lock-defaults
-               ;; Taken from from `sh-mode'
-               `((sh-font-lock-keywords
-                  sh-font-lock-keywords-1 sh-font-lock-keywords-2)
-                 nil nil
-                 ((?/ . "w") (?~ . "w") (?. . "w") (?- . "w") (?_ . "w")) nil
-                 (font-lock-syntactic-face-function
-                  . ,#'sh-font-lock-syntactic-face-function)))
-              (font-lock-keywords
-               font-lock-keywords)
-              (font-lock-keywords-only
-               font-lock-keywords-only)
-              (font-lock-keywords-case-fold-search
-               font-lock-keywords-case-fold-search)
-              (font-lock-syntax-table
-               font-lock-syntax-table)
-              (font-lock-syntactic-face-function
-               font-lock-syntactic-face-function))
-          (font-lock-set-defaults)
-          ;; Set up our font-lock variables
-          (setq shell-highlight-fl-keywords
-                font-lock-keywords)
-          (setq shell-highlight-fl-keywords-only
-                font-lock-keywords-only)
-          (setq shell-highlight-fl-keywords-case-fold-search
-                font-lock-keywords-case-fold-search)
-          (setq shell-highlight-fl-syntax-table
-                font-lock-syntax-table)
-          (setq shell-highlight-fl-syntactic-face-function
-                font-lock-syntactic-face-function)
-          (setq-local shell-highlight-fl-syntax-propertize-function
-                      #'sh-syntax-propertize-function))
+  (when shell-highlight-fl-orig-dont-widen
+    (setq-local font-lock-dont-widen
+                (car shell-highlight-fl-orig-dont-widen))
+    (setq shell-highlight-fl-orig-dont-widen nil))
+  (kill-local-variable 'comint-highlight-input)
+  (when shell-highlight--remove-extend-functions
+    (remove-hook 'syntax-propertize-extend-region-functions
+                 #'syntax-propertize-multiline 'local)
+    (setq shell-highlight--remove-extend-functions nil))
 
-        ;; Set up our fontify and propertize functions
-        (unless syntax-propertize-function
-          (setq-local syntax-propertize-function #'ignore))
-        (add-function :after (local 'syntax-propertize-function)
-                      #'shell-highlight-syntax-propertize)
-        (add-function :around (local 'font-lock-fontify-region-function)
-                      #'shell-highlight-fontify-region)
+  (when shell-highlight-mode
+    (font-lock-set-defaults)
+    ;; Trick to turn on jit-lock with `jit-lock-contextually' set to t
+    (font-lock-mode -1)
+    (let ((font-lock-keywords-only nil))
+      (font-lock-mode 1))
 
-        ;; Misc
-        (setq shell-highlight-fl-orig-dont-widen
-              font-lock-dont-widen)
-        (setq font-lock-dont-widen t)
-        (setq-local comint-highlight-input nil)
+    (make-local-variable 'font-lock-keywords)
+    (make-local-variable 'font-lock-keywords-only)
+    (make-local-variable 'font-lock-keywords-case-fold-search)
+    (make-local-variable 'font-lock-syntax-table)
+    (make-local-variable 'font-lock-syntactic-face-function)
+    (let ((font-lock-set-defaults nil)
+          (font-lock-defaults
+           ;; Taken from from `sh-mode'
+           `((sh-font-lock-keywords
+              sh-font-lock-keywords-1 sh-font-lock-keywords-2)
+             nil nil
+             ((?/ . "w") (?~ . "w") (?. . "w") (?- . "w") (?_ . "w")) nil
+             (font-lock-syntactic-face-function
+              . ,#'sh-font-lock-syntactic-face-function)))
+          (font-lock-keywords
+           font-lock-keywords)
+          (font-lock-keywords-only
+           font-lock-keywords-only)
+          (font-lock-keywords-case-fold-search
+           font-lock-keywords-case-fold-search)
+          (font-lock-syntax-table
+           font-lock-syntax-table)
+          (font-lock-syntactic-face-function
+           font-lock-syntactic-face-function))
+      (font-lock-set-defaults)
+      ;; Set up our font-lock variables
+      (setq shell-highlight-fl-keywords
+            font-lock-keywords)
+      (setq shell-highlight-fl-keywords-only
+            font-lock-keywords-only)
+      (setq shell-highlight-fl-keywords-case-fold-search
+            font-lock-keywords-case-fold-search)
+      (setq shell-highlight-fl-syntax-table
+            font-lock-syntax-table)
+      (setq shell-highlight-fl-syntactic-face-function
+            font-lock-syntactic-face-function)
+      (setq-local shell-highlight-fl-syntax-propertize-function
+                  #'sh-syntax-propertize-function))
 
-        (unless (memq #'syntax-propertize-multiline
-                      syntax-propertize-extend-region-functions)
-          (setq shell-highlight--remove-extend-functions t)
-          (add-hook 'syntax-propertize-extend-region-functions
-                    #'syntax-propertize-multiline 'append 'local)))
+    ;; Set up our fontify and propertize functions
+    (unless syntax-propertize-function
+      (setq-local syntax-propertize-function #'ignore))
+    (add-function :after (local 'syntax-propertize-function)
+                  #'shell-highlight-syntax-propertize)
+    (add-function :around (local 'font-lock-fontify-region-function)
+                  #'shell-highlight-fontify-region)
 
-    (remove-function (local 'font-lock-fontify-region-function)
-                     #'shell-highlight-fontify-region)
-    (remove-function (local 'syntax-propertize-function)
-                     #'shell-highlight-syntax-propertize)
+    ;; Misc
+    (setq shell-highlight-fl-orig-dont-widen
+          (list font-lock-dont-widen))
+    (setq-local font-lock-dont-widen t)
+    (setq-local comint-highlight-input nil)
 
-    (setq font-lock-dont-widen
-          shell-highlight-fl-orig-dont-widen)
-    (kill-local-variable 'comint-highlight-input)
-    (when shell-highlight--remove-extend-functions
-      (remove-hook 'syntax-propertize-extend-region-functions
-                   #'syntax-propertize-multiline 'local)))
+    (unless (memq #'syntax-propertize-multiline
+                  syntax-propertize-extend-region-functions)
+      (setq shell-highlight--remove-extend-functions t)
+      (add-hook 'syntax-propertize-extend-region-functions
+                #'syntax-propertize-multiline 'append 'local)))
 
   (font-lock-flush))
 
