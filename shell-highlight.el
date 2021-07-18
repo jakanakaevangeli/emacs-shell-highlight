@@ -123,24 +123,23 @@ VERBOSE is passed to the fontify-region functions."
       (`(jit-lock-bounds ,beg1 . ,end1)
        (setq ret-beg beg1 ret-end end1)))
     (pcase
-        (shell-highlight--intersect-regions
-         nil
-         (lambda (beg end)
-           (let ((font-lock-keywords
-                  shell-highlight-fl-keywords)
-                 (font-lock-keywords-only
-                  shell-highlight-fl-keywords-only)
-                 (font-lock-keywords-case-fold-search
-                  shell-highlight-fl-keywords-case-fold-search)
-                 (font-lock-syntax-table
-                  shell-highlight-fl-syntax-table)
-                 (font-lock-syntactic-face-function
-                  shell-highlight-fl-syntactic-face-function))
-             (prog1 (funcall fun beg end verbose)
-               ;; The default fontify function may modify the keywords variable
-               (setq shell-highlight-fl-keywords
-                     font-lock-keywords))))
-         beg end)
+        (let ((font-lock-keywords
+               shell-highlight-fl-keywords)
+              (font-lock-keywords-only
+               shell-highlight-fl-keywords-only)
+              (font-lock-keywords-case-fold-search
+               shell-highlight-fl-keywords-case-fold-search)
+              (font-lock-syntax-table
+               shell-highlight-fl-syntax-table)
+              (font-lock-syntactic-face-function
+               shell-highlight-fl-syntactic-face-function))
+          (prog1 (shell-highlight--intersect-regions
+                  nil (lambda (beg end)
+                        (funcall fun beg end verbose))
+                  beg end)
+            ;; The default fontify function may modify the keywords variable
+            (setq shell-highlight-fl-keywords
+                  font-lock-keywords)))
       ((and (guard ret-beg)
             `((jit-lock-bounds ,beg1 . ,_) . (jit-lock-bounds ,_ . ,end1)))
        `(jit-lock-bounds ,(min beg1 beg ret-beg) .
@@ -150,22 +149,18 @@ VERBOSE is passed to the fontify-region functions."
   "After advice for `syntax-propertize-function'.
 Then propertize input input text in the region specified by BEG
 and END using `sh-script-mode' propertize function."
-  (if-let* ((fun shell-highlight-fl-syntax-propertize-function))
-      (shell-highlight--intersect-regions
-       nil
-       (lambda (beg end)
-         (let ((font-lock-keywords
-                shell-highlight-fl-keywords)
-               (font-lock-keywords-only
-                shell-highlight-fl-keywords-only)
-               (font-lock-keywords-case-fold-search
-                shell-highlight-fl-keywords-case-fold-search)
-               (font-lock-syntax-table
-                shell-highlight-fl-syntax-table)
-               (font-lock-syntactic-face-function
-                shell-highlight-fl-syntactic-face-function))
-           (funcall fun beg end)))
-       beg end)))
+  (when-let* ((fun shell-highlight-fl-syntax-propertize-function))
+    (let ((font-lock-keywords
+           shell-highlight-fl-keywords)
+          (font-lock-keywords-only
+           shell-highlight-fl-keywords-only)
+          (font-lock-keywords-case-fold-search
+           shell-highlight-fl-keywords-case-fold-search)
+          (font-lock-syntax-table
+           shell-highlight-fl-syntax-table)
+          (font-lock-syntactic-face-function
+           shell-highlight-fl-syntactic-face-function))
+      (shell-highlight--intersect-regions nil fun beg end))))
 
 ;;;###autoload
 (define-minor-mode shell-highlight-mode
