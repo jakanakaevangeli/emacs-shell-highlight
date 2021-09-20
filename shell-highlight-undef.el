@@ -65,7 +65,7 @@ The remote host is chosen as indicated by `default-directory'."
   :group 'faces
   :type 'boolean)
 
-(defvar shell-highlight-undef--face 'font-lock-function-name-face)
+(defvar shell-highlight-undef--face 'shell-highlight-undef-defined-face)
 (defvar shell-highlight-undef-keywords
   `((,#'shell-highlight-undef-matcher 6 shell-highlight-undef--face)))
 (defvar-local shell-highlight-undef-regexp
@@ -85,7 +85,7 @@ The remote host is chosen as indicated by `default-directory'."
                 nil)
                ((member cmd shell-highlight-undef-aliases)
                 'shell-highlight-undef-alias-face)
-               ;; Check if it contain a directory separator
+               ;; Check if it contains a directory separator
                ((file-name-directory cmd)
                 (if (or (file-executable-p cmd)
                         (file-directory-p cmd))
