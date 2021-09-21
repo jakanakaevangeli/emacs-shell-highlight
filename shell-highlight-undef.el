@@ -59,11 +59,73 @@
   :group 'faces
   :type '(repeat string))
 
-(defcustom shell-highlight-undef-search-remote nil
-  "If t, allow searching on remote hosts for executable files.
-The remote host is chosen as indicated by `default-directory'."
+(defcustom shell-highlight-remote-file-name-inhibit-cache nil
+  "Whether to use the cache for finding remote executables.
+See `remote-file-name-inhibit-cache' description.  Additionally,
+you can set this variable to the symbol
+\\='remote-file-name-inhibit-cache, to make it use the same value
+as `remote-file-name-inhibit-cache'."
   :group 'faces
-  :type 'boolean)
+  :type '(choice
+          (const :tag "Do not inhibit file name cache" nil)
+          (const :tag "Do not use file name cache" t)
+          (const :tag "Use the same as value as remote-file-name-inhibit-cache"
+                 remote-file-name-inhibit-cache)
+          (integer :tag "Do not use file name cache"
+                   :format "Do not use file name cache older then %v seconds"
+                   :value 10)))
+
+(defvar shell-highlight-undef--exec-cache nil
+  "Cache of executable files found in `exec-path'.
+An alist, whose elements are of the form
+(REMOTE TIME EXECUTABLES), where REMOTE is a string, returned by
+`file-remote-p', TIME is the return value of `float-time' end
+EXECUTABLES is a hash table with keys being the base-names of
+executable files.
+
+Cache expiry is controlled by the user option
+`remote-file-name-inhibit-cache'.")
+
+(defun shell-highlight--executable-find (command)
+  "Return non-nil if COMMAND found in `exec-path'.
+Similar to `executable-find', but use cache, stored in
+`shell-highlight-undef--exec-cache'."
+  (let ((remote (file-remote-p default-directory))
+        as ret found-in-cache delta-time)
+    (if (null remote)
+        (executable-find command)
+
+      (setq delta-time shell-highlight-remote-file-name-inhibit-cache)
+      (when (eq delta-time 'remote-file-name-inhibit-cache)
+        (setq delta-time remote-file-name-inhibit-cache))
+
+      (pcase (setq as (assoc remote shell-highlight-undef--exec-cache))
+        (`(,_ ,time ,hash)
+         (when (pcase delta-time
+                 ((pred numberp) (<= (float-time) (+ time delta-time)))
+                 ('t nil)
+                 ('nil t))
+           (setq ret (gethash command hash))
+           (setq found-in-cache t)))
+        (_ (setq as (list remote 0 (make-hash-table :test #'equal)))
+           (push as shell-highlight-undef--exec-cache)))
+
+      (if found-in-cache
+          ret
+        ;; Build cache
+        (setcar (cdr as) (float-time))
+        (let ((hash (clrhash (caddr as))))
+          (dolist (dir (exec-path))
+            (pcase-dolist (`(,f . ,attr) (directory-files-and-attributes
+                                          (concat remote dir)
+                                          nil nil 'nosort 'integer))
+              ;; Approximation.  Assume every non-directory file in $PATH is an
+              ;; executable.  Alternatively, would could check
+              ;; `file-executable-p', but doing so for every file in $PATH is
+              ;; slow on remote machines.
+              (unless (eq t (file-attribute-type attr))
+                (puthash f t hash))))
+          (gethash command hash))))))
 
 (defvar shell-highlight-undef--face 'shell-highlight-undef-defined-face)
 (defvar shell-highlight-undef-keywords
@@ -91,7 +153,7 @@ The remote host is chosen as indicated by `default-directory'."
                         (file-directory-p cmd))
                     'shell-highlight-undef-defined-face
                   'shell-highlight-undef-undefined-face))
-               ((executable-find cmd shell-highlight-undef-search-remote)
+               ((shell-highlight--executable-find cmd)
                 'shell-highlight-undef-defined-face)
                (t 'shell-highlight-undef-undefined-face)))))
     t))
