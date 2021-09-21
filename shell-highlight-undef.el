@@ -149,6 +149,11 @@ Similar to `executable-find', but use cache, stored in
                 'shell-highlight-undef-alias-face)
                ;; Check if it contains a directory separator
                ((file-name-directory cmd)
+                (when (file-name-absolute-p cmd)
+                  (setq cmd (concat
+                             (or (bound-and-true-p comint-file-name-prefix)
+                                 (file-remote-p default-directory))
+                             cmd)))
                 (if (or (file-executable-p cmd)
                         (file-directory-p cmd))
                     'shell-highlight-undef-defined-face
